@@ -7,6 +7,10 @@
 RabbitMQ is a message broker: it accepts and forwards messages. You can think about it as a post office: when you put the mail that you want posting in a post box, you can be sure that the letter carrier will eventually deliver the mail to your recipient. In this analogy, RabbitMQ is a post box, a post office, and a letter carrier.
 
 ### Some General Terms in RabbitMQ:
+
+![image](https://github.com/user-attachments/assets/c4def2f6-8380-4e62-b379-900e33f23d70)
+
+
 - **Producer**: Producing means nothing more than sending. A program that sends messages is a producer.
 - **Queue**: A queue acts as a memory palace on the host machine where the producer can add messages for the consumer.
 - **Consumer**: A consumer is a program that waits to receive messages.
@@ -49,8 +53,10 @@ docker run -d --name rabbitmq \
 Visit: [http://localhost:15672/](http://localhost:15672/)
 - **Default Username**: guest
 - **Default Password**: guest
-
 ---
+
+![image](https://github.com/user-attachments/assets/12252669-01f2-443f-b550-060439bef01c)
+
 
 ## 3. Connecting Node.js with RabbitMQ
 
