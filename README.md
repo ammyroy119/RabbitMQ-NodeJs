@@ -178,6 +178,107 @@ channel.consume("test_queue", (msg) => {
 ✅ **Use Case**: Logging, analytics, real-time notifications.
 ⚠️ **Warning**: Messages are lost if the consumer crashes.
 
+## 6. Work Queues
+We will create a work queue to distribute time-consuming tasks among multiple workers (consumers).
+
+#### Note: The main reason behind a work queue is to avoid executing a resource-intensive task immediately and waiting for it to complete. Instead, the task is scheduled to be processed later.
+
+![image](https://github.com/user-attachments/assets/1f2c793d-107d-4ea3-88ad-b0c277467297)
+
+
+### Producer: Sending 100 Messages
+This producer sends 100 messages to the queue. Since we don’t have a real task (like image processing, PDF generation, or network calls), we simulate processing with setTimeout. The processing time varies based on the message order.
+
+📌 producer.js
+
+```javascript
+const amqp = require("amqplib");
+async function sendMessage() {
+  const connection = await amqp.connect("amqp://localhost");
+  const channel = await connection.createChannel();
+  const queue = "hello";
+
+  await channel.assertQueue(queue, { durable: true });
+  const message = "Hello RabbitMQ!";
+
+  for (let i = 1; i <= 100; i++) {
+    channel.sendToQueue(queue, Buffer.from(`${i}-${message}`), { persistent: true });
+  }
+  console.log(`Sent: all messages`);
+
+  setTimeout(() => {
+    connection.close();
+  }, 500);
+}
+
+sendMessage().catch(console.error);
+```
+### Consumer: Processing Messages
+The consumer processes messages from the queue. It uses setTimeout to simulate varying processing times(because we don't have the real task like- image processing, network call etc) based on whether the message number is odd or even. Odd-numbered messages take longer to process than even-numbered ones.
+
+📌 consumer.js
+```javascript
+const amqp = require("amqplib");
+async function receiveMessage() {
+  const connection = await amqp.connect("amqp://localhost");
+  const channel = await connection.createChannel();
+  const queue = "hello";
+
+  await channel.assertQueue(queue, { durable: true });
+
+  console.log(`Waiting for messages in ${queue}. To exit, press CTRL+C`);
+
+  channel.consume(queue, (msg) => {
+    const nthMessage = msg.content.toString().split('-')[0];
+    console.log(nthMessage);
+
+    let timeout = 2000;
+    if (Number(nthMessage) % 2 !== 0) {
+      timeout = 4000;
+    }
+
+    setTimeout(() => {
+      console.log('message processed');
+      channel.ack(msg);
+    }, timeout);
+  });
+}
+
+receiveMessage().catch(console.error);
+```
+#### How to Execute the Work Queue
+Run one or more consumers (workers): for more workers open more terminal and run the same below command.
+shell-1/Terminal-1
+```sh
+node consumer.js
+```
+
+shell-2/Terminal-2
+```sh
+node consumer.js
+```
+Then, run the producer:
+```sh
+node producer.js
+```
+When multiple workers are running, messages will be distributed in a round-robin manner. For example, if you run two workers, one might process messages like 1st, 3rd, 5th, etc., while the other handles 2nd, 4th, 6th, etc. This setup allows heavy tasks to be processed in parallel.
+
+### Fair Dispatch
+By default, RabbitMQ dispatches messages as they enter the queue without considering the load on each consumer. This means that if odd-numbered messages are heavy (for example, if you increase the timeout to simulate a long task), one worker might get overwhelmed while another remains idle.
+
+![image](https://github.com/user-attachments/assets/c8a18a9c-1cc4-4118-8b4a-bf5d5745ebc0)
+
+
+To avoid this, use the prefetch method:
+```javascript
+channel.prefetch(1);
+```
+This tells RabbitMQ to send only one message to a worker at a time until it has finished processing and acknowledged the previous message.
+
+Note about queue size: If all workers are busy, the queue can fill up. Monitor the queue and add more workers or use another strategy if needed.
+
+
+
 ---
 
 📌 _This README will be updated with the next pending RabbitMQ topics._
